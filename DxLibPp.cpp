@@ -117,7 +117,6 @@ font::font() {
 
 font::font(std::string_view path, int size) {
     impl->handle = CreateFontToHandle_s(path.data(), size, -1, DX_FONTTYPE_ANTIALIASING);
-    GetFontStateToHandle_s(std::string{path}.data(), &size, nullptr, impl->handle);
 }
 
 font::font(const font & fnt)
@@ -137,6 +136,12 @@ font & font::operator =(const font & fnt) {
     y = fnt.y;
     impl = std::make_unique<font::impl_t>(*fnt.impl);
     return *this;
+}
+
+double font::get_height() const {
+    int height;
+    GetFontStateToHandle_s(nullptr, &height, nullptr, impl->handle);
+    return static_cast<double>(height);
 }
 
 double font::get_width() const {

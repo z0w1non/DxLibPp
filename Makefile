@@ -9,7 +9,7 @@ LINK_OPTIONS := -L./lib/DxLib -lDxLib -lDxUseCLib -lDxDrawFunc -ljpeg -lpng -lzl
 all: $(TARGET)
 
 $(TARGET): main.cpp DxLibPp.o
-	$(CXX) $(FLAGS) $(LINK_OPTIONS) $(COMPILE_OPTIONS) $^ -o $(TARGET)
+	$(CXX) $(FLAGS) $^ $(COMPILE_OPTIONS) $(LINK_OPTIONS) -o $(TARGET)
 
 DxLibPp.o: DxLibPp.cpp
 	$(CXX) $(FLAGS) -c $(COMPILE_OPTIONS) $^ -o $@
