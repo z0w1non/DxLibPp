@@ -165,6 +165,11 @@ private:
     std::unique_ptr<impl_t> impl;
 };
 
+struct touch_input_t {
+    int get_number() const;
+    point
+} touch_input;
+
 struct system_initializer_t;
 struct system {
     friend class system_initializer_t;

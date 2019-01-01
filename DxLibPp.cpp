@@ -52,7 +52,7 @@ system_initializer_t::~system_initializer_t() {
 }
 
 struct image::impl_t {
-    int handle;
+    int handle{-1};
     dimension get_dimension() const {
         int width{}, height{};
         GetGraphSize_s(handle, &width, &height);
@@ -108,7 +108,7 @@ void image::draw() const {
 }
 
 struct font::impl_t {
-    int handle;
+    int handle{-1};
 };
 
 font::font() {
@@ -140,7 +140,7 @@ font & font::operator =(const font & fnt) {
 }
 
 double font::get_width() const {
-    return GetDrawStringWidthToHandle_s(text.c_str(), text.length(), impl->handle);
+    return GetDrawStringWidthToHandle_s(text.data(), text.length(), impl->handle);
 }
 
 void font::draw() const {
