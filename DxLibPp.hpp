@@ -3,6 +3,12 @@
 
 #include <string>
 #include <memory>
+#include <list>
+#include <utility>
+#include <optional>
+#include <functional>
+
+namespace DxLibPp {
 
 template<typename T>
 struct abstract_position {
@@ -100,7 +106,16 @@ struct abstract_rotatable {
     virtual void set_theta(value_type theta) = 0;
 };
 
-struct object : drawable, updatable, abstract_rotatable<double>, abstract_position<double>, abstract_dimension<double> {};
+struct object
+    : drawable
+    , updatable
+    , abstract_rotatable<double>
+    , abstract_position<double>
+    , abstract_dimension<double>
+{
+    virtual void draw() const override {}
+    virtual void update() override {}
+};
 
 struct image : object {
     image(std::string_view path);
@@ -156,7 +171,10 @@ struct font : object {
     virtual double get_height() const override;
     virtual void set_width(double width) {}
     virtual void set_height(double height) {}
-    virtual void draw() const;
+    virtual double get_theta() const override;
+    virtual void set_theta(double theta) override;
+    virtual void draw() const override;
+    virtual void update() override;
 
 private:
     std::string text;
@@ -164,6 +182,53 @@ private:
     class impl_t;
     std::unique_ptr<impl_t> impl;
 };
+
+template<typename T>
+struct as {
+    as();
+    void attach(typename std::list<T>::reverse_iterator iter);
+    void detach();
+    ~as();
+
+private:
+    std::optional<typename std::list<T>::iterator> optiter;
+};
+
+struct global {
+    template<typename T> static std::list<std::shared_ptr<T>> & list();
+    template<typename T, typename Function> static void for_each(Function && function);
+    static std::vector<std::function<void()>> get_attachment_resuests();
+    template<typename T> static void request_attachment(as<T> & obj);
+    static void resolve_attachment();
+    template<typename T, typename ... Args> static std::shared_ptr<T> create(Args && ... args);
+};
+
+template<typename T> as<T>::as() { global::request_attachment<T>(*this); }
+template<typename T> void as<T>::attach(typename std::list<T>::reverse_iterator iter) { optiter = iter; }
+template<typename T> void as<T>::detach() { if (optiter) global::list<T>().erase(*optiter); optiter = std::nullopt; }
+template<typename T> as<T>::~as() { detach(); }
+
+template<typename T> std::list<std::shared_ptr<T>> & global::list()
+    { static std::list<std::shared_ptr<T>> lst; return lst; }
+
+template<typename T, typename Function> void global::for_each(Function && function)
+    { for (auto && element : list<T>()) function(element); }
+
+std::vector<std::function<void()>> global::get_attachment_resuests()
+    { static std::vector<std::function<void()>> requests; return requests; }
+
+template<typename T> void global::request_attachment(as<T> & obj)
+    { get_attachment_resuests().push_back([&](){ obj.attach(list<T>().rbegin()); }); }
+
+void global::resolve_attachment()
+    { for (auto & request : get_attachment_resuests()) request(); }
+
+template<typename T, typename ... Args> std::shared_ptr<T> global::create(Args && ... args) {
+    auto ptr = std::make_shared<T>(std::forward<Args>(args) ...);
+    list<T>().push_back(ptr);
+    resolve_attachment();
+    return ptr;
+}
 
 struct system_initializer_t;
 struct system {
@@ -175,5 +240,7 @@ static struct system_initializer_t {
     system_initializer_t();
     ~system_initializer_t();
 } system_initializer;
+
+} //namespace DxLibPp
 
 #endif

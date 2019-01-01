@@ -38,7 +38,7 @@ DEFINE_NOTHROW_FUNCTION(DrawStringToHandle)
 #undef DEFINE_NOTHROW_FUNCTION
 }
 
-system_initializer_t::system_initializer_t() {
+DxLibPp::system_initializer_t::system_initializer_t() {
     if (system_initializer_counter++ == 0) {
         ChangeWindowMode_s(TRUE);
         DxLib_Init_s();
@@ -46,12 +46,12 @@ system_initializer_t::system_initializer_t() {
     }
 }
 
-system_initializer_t::~system_initializer_t() {
+DxLibPp::system_initializer_t::~system_initializer_t() {
     if (--system_initializer_counter == 0)
         DxLib_End();
 }
 
-struct image::impl_t {
+struct DxLibPp::image::impl_t {
     int handle{-1};
     dimension get_dimension() const {
         int width{}, height{};
@@ -60,14 +60,14 @@ struct image::impl_t {
     }
 };
 
-image::image(std::string_view path) {
+DxLibPp::image::image(std::string_view path) {
     impl->handle = LoadGraph_s(path.data());
     dimension d = impl->get_dimension();
     this->width = d.get_width();
     this->height = d.get_height();
 }
 
-image::image(const image & img)
+DxLibPp::image::image(const image & img)
     : x{img.x}
     , y{img.y}
     , width{img.width}
@@ -78,11 +78,11 @@ image::image(const image & img)
     *impl = *img.impl;
 }
 
-image::~image() {
+DxLibPp::image::~image() {
     DeleteGraph(impl->handle);
 }
 
-image & image::operator =(const image & img) {
+DxLibPp::image & DxLibPp::image::operator =(const image & img) {
     x = img.x;
     y = img.y;
     width = img.width;
@@ -92,7 +92,7 @@ image & image::operator =(const image & img) {
     return *this;
 }
 
-void image::draw() const {
+void DxLibPp::image::draw() const {
     dimension d = impl->get_dimension();
     int center_x = static_cast<int>(get_x() + get_width() / 2);
     int center_y = static_cast<int>(get_x() + get_height() / 2);
@@ -107,30 +107,31 @@ void image::draw() const {
     );
 }
 
-struct font::impl_t {
+struct DxLibPp::font::impl_t {
     int handle{-1};
+    double theta{};
 };
 
-font::font() {
+DxLibPp::font::font() {
     impl->handle = CreateFontToHandle_s(nullptr, -1, -1, DX_FONTTYPE_ANTIALIASING);
 }
 
-font::font(std::string_view path, int size) {
+DxLibPp::font::font(std::string_view path, int size) {
     impl->handle = CreateFontToHandle_s(path.data(), size, -1, DX_FONTTYPE_ANTIALIASING);
 }
 
-font::font(const font & fnt)
+DxLibPp::font::font(const font & fnt)
     : text{fnt.text}
     , x{fnt.x}
     , y{fnt.y}
     , impl{std::make_unique<font::impl_t>(*fnt.impl)}
 {}
 
-font::~font() {
+DxLibPp::font::~font() {
     DeleteFontToHandle(impl->handle);
 }
 
-font & font::operator =(const font & fnt) {
+DxLibPp::font & DxLibPp::font::operator =(const font & fnt) {
     text = fnt.text;
     x = fnt.x;
     y = fnt.y;
@@ -138,21 +139,31 @@ font & font::operator =(const font & fnt) {
     return *this;
 }
 
-double font::get_height() const {
+double DxLibPp::font::get_height() const {
     int height;
     GetFontStateToHandle_s(nullptr, &height, nullptr, impl->handle);
     return static_cast<double>(height);
 }
 
-double font::get_width() const {
+double DxLibPp::font::get_width() const {
     return GetDrawStringWidthToHandle_s(text.data(), text.length(), impl->handle);
 }
 
-void font::draw() const {
+double DxLibPp::font::get_theta() const {
+    return impl->theta;
+}
+
+void DxLibPp::font::set_theta(double theta) {
+    impl->theta = theta;
+}
+
+void DxLibPp::font::draw() const {
     DrawStringToHandle_s(x, y, text.data(), GetColor(0, 0, 0), impl->handle); //TODO
 }
 
-bool system::update() {
+void DxLibPp::font::update() {}
+
+bool DxLibPp::system::update() {
     return ScreenFlip() != -1 && ProcessMessage() != -1 && ClearDrawScreen() != -1;
 }
 
