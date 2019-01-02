@@ -180,9 +180,3 @@ void DxLibPp::global::resolve_attachment() {
 bool DxLibPp::system::update() {
     return ScreenFlip() != -1 && ProcessMessage() != -1 && ClearDrawScreen() != -1;
 }
-
-int main();
-
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    return main();
-}
