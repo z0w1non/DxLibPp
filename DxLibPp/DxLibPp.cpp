@@ -41,9 +41,9 @@ DEFINE_NOTHROW_FUNCTION(DrawStringToHandle)
 
 DxLibPp::system_initializer_t::system_initializer_t() {
     if (system_initializer_counter++ == 0) {
-		SetOutApplicationLogValidFlag_s(FALSE);
-		ChangeWindowMode_s(TRUE);
-		DxLib_Init_s();
+        SetOutApplicationLogValidFlag_s(FALSE);
+        ChangeWindowMode_s(TRUE);
+        DxLib_Init_s();
         SetDrawScreen_s(DX_SCREEN_BACK);
     }
 }
@@ -63,7 +63,7 @@ struct DxLibPp::image::impl_t {
 };
 
 DxLibPp::image::image(std::string_view path)
-	: impl{std::make_unique<impl_t>()}
+    : impl{std::make_unique<impl_t>()}
 {
     impl->handle = LoadGraph_s(path.data());
     dimension d = impl->get_dimension();
@@ -117,7 +117,7 @@ struct DxLibPp::font::impl_t {
 };
 
 DxLibPp::font::font()
-	: impl{std::make_unique<impl_t>()}
+    : impl{std::make_unique<impl_t>()}
 {
     impl->handle = CreateFontToHandle_s(nullptr, -1, -1, DX_FONTTYPE_ANTIALIASING);
 }
@@ -170,11 +170,11 @@ void DxLibPp::font::draw() const {
 void DxLibPp::font::update() {}
 
 std::vector<std::function<void()>> DxLibPp::global::get_attachment_resuests() {
-	static std::vector<std::function<void()>> requests; return requests;
+    static std::vector<std::function<void()>> requests; return requests;
 }
 
 void DxLibPp::global::resolve_attachment() {
-	for (auto & request : get_attachment_resuests()) request();
+    for (auto & request : get_attachment_resuests()) request();
 }
 
 bool DxLibPp::system::update() {
