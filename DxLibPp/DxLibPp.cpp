@@ -152,7 +152,7 @@ double DxLibPp::font::get_height() const {
 }
 
 double DxLibPp::font::get_width() const {
-    return GetDrawStringWidthToHandle_s(text.data(), text.length(), impl->handle);
+    return GetDrawStringWidthToHandle_s(text.data(), static_cast<int>(text.length()), impl->handle);
 }
 
 double DxLibPp::font::get_theta() const {

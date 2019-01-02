@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <list>
+#include <vector>
 #include <utility>
 #include <optional>
 #include <functional>
