@@ -111,6 +111,28 @@ struct abstract_rotatable {
     virtual void set_theta(value_type theta) = 0;
 };
 
+template<typename T>
+struct basic_position : abstract_position<T> {
+    using value_type = T;
+    double get_x() const override { return x; }
+    double get_y() const override { return y; }
+    void set_x(double x) override { this->x = x; }
+    void set_y(double y) override { this->y = y; }
+
+protected:
+    value_type x{}, y{}, width{}, height{};
+};
+
+template<typename T>
+struct basic_rotatable : abstract_rotatable<T> {
+    using value_type = T;
+    value_type get_theta() const override { return theta; }
+    void set_theta(value_type theta) override { this->theta = theta; }
+
+protected:
+    value_type theta{};
+};
+
 struct object
     : drawable
     , updatable
@@ -239,6 +261,21 @@ static struct system_initializer_t {
     system_initializer_t();
     ~system_initializer_t();
 } system_initializer;
+
+struct screen {
+    static int get_width();
+    static int get_height();
+};
+
+struct tiled_map : object {
+    tiled_map()
+        : width{static_cast<double>(screen::get_width())}
+        , height{static_cast<double>(screen::get_height())}
+    {}
+
+private:
+    double x{}, y{}, width{}, height{};
+};
 
 } //namespace DxLibPp
 

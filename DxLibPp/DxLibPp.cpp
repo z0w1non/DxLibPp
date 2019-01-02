@@ -27,6 +27,7 @@ DEFINE_THROW_FUNCTION(GetDrawStringWidthToHandle)
 DEFINE_THROW_FUNCTION(GetFontStateToHandle)
 // DEFINE_THROW_FUNCTION(DeleteFontToHandle)
 DEFINE_THROW_FUNCTION(SetOutApplicationLogValidFlag)
+DEFINE_THROW_FUNCTION(GetScreenState)
 #undef DEFINE_THROW_FUNCTION
 
 #define DEFINE_NOTHROW_FUNCTION(function_name) \
@@ -179,4 +180,16 @@ void DxLibPp::global::resolve_attachment() {
 
 bool DxLibPp::system::update() {
     return ScreenFlip() != -1 && ProcessMessage() != -1 && ClearDrawScreen() != -1;
+}
+
+int DxLibPp::screen::get_width() {
+    int width{}, height{}, color_bit_depth{};
+    GetScreenState_s(&width, &height, &color_bit_depth);
+    return width;
+}
+
+int DxLibPp::screen::get_height() {
+    int width{}, height{}, color_bit_depth{};
+    GetScreenState_s(&width, &height, &color_bit_depth);
+    return height;
 }
