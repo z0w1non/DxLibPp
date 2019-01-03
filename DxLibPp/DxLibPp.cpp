@@ -42,7 +42,7 @@ DEFINE_NOTHROW_FUNCTION(DrawStringToHandle)
 
 }
 
-DxLibPp::system_initializer_t::system_initializer_t() {
+DxLibPp::SystemInitializer::SystemInitializer() {
     if (system_initializer_counter++ == 0) {
         SetOutApplicationLogValidFlag_s(FALSE);
         ChangeWindowMode_s(TRUE);
@@ -51,14 +51,14 @@ DxLibPp::system_initializer_t::system_initializer_t() {
     }
 }
 
-DxLibPp::system_initializer_t::~system_initializer_t() {
+DxLibPp::SystemInitializer::~SystemInitializer() {
     if (--system_initializer_counter == 0)
         DxLib_End();
 }
 
-struct DxLibPp::graph::impl_t {
+struct DxLibPp::Graph::impl_t {
     std::shared_ptr<int> handle{new int{-1}, &delete_handle };
-    dimension get_dimension() const {
+    Dimension get_dimension() const {
         int width{}, height{};
         GetGraphSize_s(*handle, &width, &height);
         return {static_cast<double>(width), static_cast<double>(height)};
@@ -70,61 +70,61 @@ struct DxLibPp::graph::impl_t {
     }
 };
 
-DxLibPp::graph::graph()
+DxLibPp::Graph::Graph()
     : impl{std::make_unique<impl_t>()}
 {}
 
-DxLibPp::graph::graph(std::string_view path)
+DxLibPp::Graph::Graph(std::string_view path)
     : impl{std::make_unique<impl_t>()}
 {
-    load(path);
+    Load(path);
 }
 
-DxLibPp::graph::graph(const graph & g)
+DxLibPp::Graph::Graph(const Graph & g)
     : x{g.x}
     , y{g.y}
     , width{g.width}
     , height{g.height}
     , theta{g.theta}
-    , impl{std::make_unique<graph::impl_t>(*g.impl)}
+    , impl{std::make_unique<Graph::impl_t>(*g.impl)}
 {}
 
-DxLibPp::graph::~graph() {}
+DxLibPp::Graph::~Graph() {}
 
-DxLibPp::graph & DxLibPp::graph::operator =(const graph & g) {
+DxLibPp::Graph & DxLibPp::Graph::operator =(const Graph & g) {
     x = g.x;
     y = g.y;
     width = g.width;
     height = g.height;
     theta = g.theta;
-    impl = std::make_unique<graph::impl_t>(*g.impl);
+    impl = std::make_unique<Graph::impl_t>(*g.impl);
     return *this;
 }
 
-void DxLibPp::graph::draw() const {
-    dimension d = impl->get_dimension();
-    int center_x = static_cast<int>(get_x() + get_width() / 2);
-    int center_y = static_cast<int>(get_x() + get_height() / 2);
-    double extend_x_rate = get_width() / d.get_width();
-    double extend_y_rate = get_height() / d.get_height();
+void DxLibPp::Graph::Draw() const {
+    Dimension d = impl->get_dimension();
+    int center_x = static_cast<int>(GetX() + GetWidth() / 2);
+    int center_y = static_cast<int>(GetY() + GetHeight() / 2);
+    double extend_x_rate = GetWidth() / d.GetWidth();
+    double extend_y_rate = GetHeight() / d.GetHeight();
     DrawRotaGraph3_s(
         center_x, center_y,
         center_x, center_y,
         extend_x_rate, extend_y_rate,
-        get_theta(), *impl->handle,
+        GetTheta(), *impl->handle,
         TRUE, FALSE
     );
 }
 
-void DxLibPp::graph::load(std::string_view path) {
+void DxLibPp::Graph::Load(std::string_view path) {
     int handle = LoadGraph_s(std::string{path}.c_str());
     impl->handle = std::shared_ptr<int>(new int{handle}, &impl_t::delete_handle);
-    dimension d = impl->get_dimension();
-    width = d.get_width();
-    height = d.get_height();
+    Dimension d = impl->get_dimension();
+    width = d.GetWidth();
+    height = d.GetHeight();
 }
 
-std::shared_ptr<DxLibPp::iterator<std::shared_ptr<DxLibPp::graph>>> DxLibPp::graph::load_div_graph(
+std::shared_ptr<DxLibPp::Iterator<std::shared_ptr<DxLibPp::Graph>>> DxLibPp::Graph::LoadDivGraph(
     std::string_view path,
     std::size_t number,
     std::size_t column_number, std::size_t row_number,
@@ -132,16 +132,16 @@ std::shared_ptr<DxLibPp::iterator<std::shared_ptr<DxLibPp::graph>>> DxLibPp::gra
 ) {
     std::vector<int> handles(number);
     LoadDivGraph_s(std::string(path).c_str(), number, column_number, row_number, column_width, row_height, handles.data());
-    auto graphs = std::make_shared<std::vector<std::shared_ptr<graph>>>();
+    auto graphs = std::make_shared<std::vector<std::shared_ptr<Graph>>>();
     for (std::size_t i = 0; i < handles.size(); ++i) {
-        auto g = std::make_shared<graph>();
+        auto g = std::make_shared<Graph>();
         g->impl->handle = std::shared_ptr<int>{new int{handles.at(i)}, impl_t::delete_handle};
         graphs->push_back(g);
     }
-    return make_iterator(graphs);
+    return CreateIterator(graphs);
 }
 
-struct DxLibPp::font::impl_t {
+struct DxLibPp::Font::impl_t {
     std::shared_ptr<int> handle{new int{-1}, &delete_handle};
     static void delete_handle(int * ptr) {
         if (*ptr != -1)
@@ -150,86 +150,86 @@ struct DxLibPp::font::impl_t {
     }
 };
 
-DxLibPp::font::font()
+DxLibPp::Font::Font()
     : impl{std::make_unique<impl_t>()}
 {
     int handle = CreateFontToHandle_s(nullptr, -1, -1, DX_FONTTYPE_ANTIALIASING);
     impl->handle = std::shared_ptr<int>(new int{ handle }, &impl_t::delete_handle);
 }
 
-DxLibPp::font::font(std::string_view path, int size)
+DxLibPp::Font::Font(std::string_view path, int size)
     : impl{std::make_unique<impl_t>()}
 {
-    load(path, size);
+    Load(path, size);
 }
 
-DxLibPp::font::font(const font & fnt)
+DxLibPp::Font::Font(const Font & fnt)
     : text{fnt.text}
     , x{fnt.x}
     , y{fnt.y}
     , theta{fnt.theta}
-    , impl{std::make_unique<font::impl_t>(*fnt.impl)}
+    , impl{std::make_unique<Font::impl_t>(*fnt.impl)}
 {}
 
-DxLibPp::font::~font() {}
+DxLibPp::Font::~Font() {}
 
-DxLibPp::font & DxLibPp::font::operator =(const font & fnt) {
+DxLibPp::Font & DxLibPp::Font::operator =(const Font & fnt) {
     text = fnt.text;
     x = fnt.x;
     y = fnt.y;
     theta = fnt.theta;
-    impl = std::make_unique<font::impl_t>(*fnt.impl);
+    impl = std::make_unique<Font::impl_t>(*fnt.impl);
     return *this;
 }
 
-double DxLibPp::font::get_height() const {
+double DxLibPp::Font::GetHeight() const {
     int height;
     GetFontStateToHandle_s(nullptr, &height, nullptr, *impl->handle);
     return static_cast<double>(height);
 }
 
-double DxLibPp::font::get_width() const {
+double DxLibPp::Font::GetWidth() const {
     return GetDrawStringWidthToHandle_s(text.data(), static_cast<int>(text.length()), *impl->handle);
 }
 
-double DxLibPp::font::get_theta() const {
+double DxLibPp::Font::GetTheta() const {
     return theta;
 }
 
-void DxLibPp::font::set_theta(double theta) {
+void DxLibPp::Font::SetTheta(double theta) {
     theta = theta;
 }
 
-void DxLibPp::font::load(std::string_view path, int size) {
+void DxLibPp::Font::Load(std::string_view path, int size) {
     int handle = CreateFontToHandle_s(path.data(), size, -1, DX_FONTTYPE_ANTIALIASING);
     impl->handle = std::shared_ptr<int>(new int{ handle }, &impl_t::delete_handle);
 }
 
-void DxLibPp::font::draw() const {
+void DxLibPp::Font::Draw() const {
     DrawStringToHandle_s(static_cast<int>(x), static_cast<int>(y), text.data(), GetColor(255, 255, 255), *impl->handle); //TODO
 }
 
-void DxLibPp::font::update() {}
+void DxLibPp::Font::Update() {}
 
-std::vector<std::function<void()>> DxLibPp::global::get_attachment_resuests() {
+std::vector<std::function<void()>> DxLibPp::Global::GetAttachmentResuests() {
     static std::vector<std::function<void()>> requests; return requests;
 }
 
-void DxLibPp::global::resolve_attachment() {
-    for (auto & request : get_attachment_resuests()) request();
+void DxLibPp::Global::ResolveAttachment() {
+    for (auto & request : GetAttachmentResuests()) request();
 }
 
-bool DxLibPp::system::update() {
+bool DxLibPp::System::Update() {
     return ScreenFlip() != -1 && ProcessMessage() != -1 && ClearDrawScreen() != -1;
 }
 
-int DxLibPp::screen::get_width() {
+int DxLibPp::Screen::GetWidth() {
     int width{}, height{}, color_bit_depth{};
     GetScreenState_s(&width, &height, &color_bit_depth);
     return width;
 }
 
-int DxLibPp::screen::get_height() {
+int DxLibPp::Screen::GetHeight() {
     int width{}, height{}, color_bit_depth{};
     GetScreenState_s(&width, &height, &color_bit_depth);
     return height;
