@@ -244,7 +244,7 @@ struct DxLibPp::Sound::impl_t {
     std::shared_ptr<int> handle{new int{-1}, &delete_handle};
     static void delete_handle(int * ptr) {
         if (*ptr != -1)
-            DeleteSoundMem(*ptr);
+            DeleteSoundMem_s(*ptr);
         delete ptr;
     }
 };
@@ -261,8 +261,11 @@ DxLibPp::Sound::Sound(const Sound & obj)
     : impl{std::make_unique<impl_t>(*obj.impl)}
 {}
 
+DxLibPp::Sound::~Sound() {}
+
 DxLibPp::Sound & DxLibPp::Sound::operator =(const Sound & obj) {
     *impl = *obj.impl;
+    return *this;
 }
 
 void DxLibPp::Sound::Play(int play_type, bool top_position_flag) {

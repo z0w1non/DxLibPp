@@ -329,7 +329,7 @@ struct Sound {
     Sound();
     Sound(std::string_view path);
     Sound(const Sound & obj);
-    virtual ~Sound() {}
+    virtual ~Sound();
     Sound & operator =(const Sound & obj);
     virtual void Play(int play_type, bool top_position_flag = true);
     virtual void Stop();
