@@ -16,7 +16,10 @@ int handle = LoadGraph("img.png");
 DrawGraph(x, y, handle, TRUE);
 
 // DxLibPp OOP style
-graph{"img.png"}.position(x, y).draw();
+Graph g{"img.png"};
+g.SetX(x);
+g.SetY(y);
+g.Draw();
 ```
 
 - 例外機能によるエラーハンドリング
@@ -31,7 +34,7 @@ if (handle == -1) {
 
 // DxLibPp error handling style by exception
 try {
-    graph g{"img.png"};
+    Graph g{"img.png"};
 } catch (std::exception & e) {
     ...
 }
