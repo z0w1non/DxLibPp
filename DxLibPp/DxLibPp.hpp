@@ -325,6 +325,28 @@ struct Screen {
     static int GetHeight();
 };
 
+struct Sound {
+    Sound();
+    Sound(std::string_view path);
+    Sound(const Sound & obj);
+    virtual ~Sound() {}
+    Sound & operator =(const Sound & obj);
+    virtual void Play(int play_type, bool top_position_flag = true);
+    virtual void Stop();
+    virtual bool Check() const;
+    virtual void Load(std::string_view path);
+
+    enum {
+        NORMAL,
+        BACK,
+        LOOP
+    };
+
+private:
+    struct impl_t;
+    std::unique_ptr<impl_t> impl;
+};
+
 struct TiledMap : Object {
     TiledMap()
         : graph_indexes{std::make_shared<typename decltype(graph_indexes)::element_type>()}

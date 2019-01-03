@@ -29,6 +29,11 @@ DEFINE_THROW_FUNCTION(GetFontStateToHandle)
 DEFINE_THROW_FUNCTION(DeleteFontToHandle)
 DEFINE_THROW_FUNCTION(SetOutApplicationLogValidFlag)
 DEFINE_THROW_FUNCTION(GetScreenState)
+DEFINE_THROW_FUNCTION(LoadSoundMem)
+DEFINE_THROW_FUNCTION(PlaySoundMem)
+DEFINE_THROW_FUNCTION(CheckSoundMem)
+DEFINE_THROW_FUNCTION(StopSoundMem)
+DEFINE_THROW_FUNCTION(DeleteSoundMem)
 #undef DEFINE_THROW_FUNCTION
 
 #define DEFINE_NOTHROW_FUNCTION(function_name) \
@@ -233,4 +238,46 @@ int DxLibPp::Screen::GetHeight() {
     int width{}, height{}, color_bit_depth{};
     GetScreenState_s(&width, &height, &color_bit_depth);
     return height;
+}
+
+struct DxLibPp::Sound::impl_t {
+    std::shared_ptr<int> handle{new int{-1}, &delete_handle};
+    static void delete_handle(int * ptr) {
+        if (*ptr != -1)
+            DeleteSoundMem(*ptr);
+        delete ptr;
+    }
+};
+
+DxLibPp::Sound::Sound()
+    : impl{std::make_unique<impl_t>()}
+{}
+
+DxLibPp::Sound::Sound(std::string_view path) {
+    Load(path);
+}
+
+DxLibPp::Sound::Sound(const Sound & obj)
+    : impl{std::make_unique<impl_t>(*obj.impl)}
+{}
+
+DxLibPp::Sound & DxLibPp::Sound::operator =(const Sound & obj) {
+    *impl = *obj.impl;
+}
+
+void DxLibPp::Sound::Play(int play_type, bool top_position_flag) {
+    PlaySoundMem_s(*impl->handle, play_type, top_position_flag ? TRUE : FALSE);
+}
+
+void DxLibPp::Sound::Stop() {
+    StopSoundMem_s(*impl->handle);
+}
+
+void DxLibPp::Sound::Load(std::string_view path) {
+    int handle = LoadSoundMem_s(std::string{path}.c_str());
+    impl->handle = std::shared_ptr<int>(new int{handle}, &impl_t::delete_handle);
+}
+
+bool DxLibPp::Sound::Check() const {
+    return CheckSoundMem_s(*impl->handle) ? true : false;
 }
