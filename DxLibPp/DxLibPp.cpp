@@ -17,6 +17,7 @@ DEFINE_THROW_FUNCTION(DxLib_Init)
 DEFINE_THROW_FUNCTION(ChangeWindowMode)
 DEFINE_THROW_FUNCTION(SetDrawScreen)
 DEFINE_THROW_FUNCTION(LoadGraph)
+DEFINE_THROW_FUNCTION(LoadDivGraph)
 DEFINE_THROW_FUNCTION(GetGraphSize)
 DEFINE_THROW_FUNCTION(DeleteGraph)
 // DEFINE_THROW_FUNCTION(ScreenFlip)
@@ -56,21 +57,27 @@ DxLibPp::system_initializer_t::~system_initializer_t() {
 }
 
 struct DxLibPp::graph::impl_t {
-    std::shared_ptr<int> handle{new int{-1}, [](int * ptr) { DeleteGraph_s(*ptr); delete ptr; }};
+    std::shared_ptr<int> handle{new int{-1}, &delete_handle };
     dimension get_dimension() const {
         int width{}, height{};
         GetGraphSize_s(*handle, &width, &height);
         return {static_cast<double>(width), static_cast<double>(height)};
     }
+    static void delete_handle(int * ptr) {
+        if (*ptr != -1)
+            DeleteGraph_s(*ptr);
+        delete ptr;
+    }
 };
+
+DxLibPp::graph::graph()
+    : impl{std::make_unique<impl_t>()}
+{}
 
 DxLibPp::graph::graph(std::string_view path)
     : impl{std::make_unique<impl_t>()}
 {
-    *impl->handle = LoadGraph_s(std::string{path}.c_str());
-    dimension d = impl->get_dimension();
-    this->width = d.get_width();
-    this->height = d.get_height();
+    load(path);
 }
 
 DxLibPp::graph::graph(const graph & g)
@@ -109,18 +116,51 @@ void DxLibPp::graph::draw() const {
     );
 }
 
+void DxLibPp::graph::load(std::string_view path) {
+    int handle = LoadGraph_s(std::string{path}.c_str());
+    impl->handle = std::shared_ptr<int>(new int{handle}, &impl_t::delete_handle);
+    dimension d = impl->get_dimension();
+    width = d.get_width();
+    height = d.get_height();
+}
+
+std::shared_ptr<DxLibPp::iterator<std::shared_ptr<DxLibPp::graph>>> DxLibPp::graph::load_div_graph(
+    std::string_view path,
+    std::size_t number,
+    std::size_t column_number, std::size_t row_number,
+    std::size_t column_width, std::size_t row_height
+) {
+    std::vector<int> handles(number);
+    LoadDivGraph_s(std::string(path).c_str(), number, column_number, row_number, column_width, row_height, handles.data());
+    auto graphs = std::make_shared<std::vector<std::shared_ptr<graph>>>();
+    for (std::size_t i = 0; i < handles.size(); ++i) {
+        auto g = std::make_shared<graph>();
+        g->impl->handle = std::shared_ptr<int>{new int{handles.at(i)}, impl_t::delete_handle};
+        graphs->push_back(g);
+    }
+    return make_iterator(graphs);
+}
+
 struct DxLibPp::font::impl_t {
-    std::shared_ptr<int> handle{new int{-1}, [](int * ptr){ DeleteFontToHandle_s(*ptr); delete ptr; }};
+    std::shared_ptr<int> handle{new int{-1}, &delete_handle};
+    static void delete_handle(int * ptr) {
+        if (*ptr != -1)
+            DeleteFontToHandle_s(*ptr);
+        delete ptr;
+    }
 };
 
 DxLibPp::font::font()
     : impl{std::make_unique<impl_t>()}
 {
-    *impl->handle = CreateFontToHandle_s(nullptr, -1, -1, DX_FONTTYPE_ANTIALIASING);
+    int handle = CreateFontToHandle_s(nullptr, -1, -1, DX_FONTTYPE_ANTIALIASING);
+    impl->handle = std::shared_ptr<int>(new int{ handle }, &impl_t::delete_handle);
 }
 
-DxLibPp::font::font(std::string_view path, int size) {
-    *impl->handle = CreateFontToHandle_s(path.data(), size, -1, DX_FONTTYPE_ANTIALIASING);
+DxLibPp::font::font(std::string_view path, int size)
+    : impl{std::make_unique<impl_t>()}
+{
+    load(path, size);
 }
 
 DxLibPp::font::font(const font & fnt)
@@ -158,6 +198,11 @@ double DxLibPp::font::get_theta() const {
 
 void DxLibPp::font::set_theta(double theta) {
     theta = theta;
+}
+
+void DxLibPp::font::load(std::string_view path, int size) {
+    int handle = CreateFontToHandle_s(path.data(), size, -1, DX_FONTTYPE_ANTIALIASING);
+    impl->handle = std::shared_ptr<int>(new int{ handle }, &impl_t::delete_handle);
 }
 
 void DxLibPp::font::draw() const {

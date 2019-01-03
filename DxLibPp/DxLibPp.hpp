@@ -193,6 +193,7 @@ struct object
 };
 
 struct graph : object {
+    graph();
     graph(std::string_view path);
     graph(const graph & img);
     virtual ~graph();
@@ -208,6 +209,13 @@ struct graph : object {
     virtual void set_height(double heihgt) override { this->height = height; }
     virtual double get_theta() const override { return theta; }
     virtual void set_theta(double theta) override { this->theta = theta; }
+    virtual void load(std::string_view path);
+    static std::shared_ptr<iterator<std::shared_ptr<graph>>> load_div_graph(
+        std::string_view path,
+        std::size_t number,
+        std::size_t column_number, std::size_t row_number,
+        std::size_t column_width, std::size_t row_height
+    );
 
 private:
     double x{}, y{}, width{}, height{}, theta{};
@@ -215,20 +223,25 @@ private:
     std::unique_ptr<impl_t> impl;
 };
 
-// struct animation : drawable, updatable {
-//     using frame = std::pair<graph, int>;
-//     template<typename Iterator> animation(Iterator begin, Iterator end) : frames{begin, end}
-//         { if (frames.empty()) throw std::logic_error("animation must be not empty."); }
-//     virtual draw() const override { frames[index].first.draw(x, y, width, height); }
-//     virtual double get_width() const override { return frames.front().first.get_width(); }
-//     virtual double get_height() const override { return frames.front().first.get_height(); }
-//     virtual update() override { if (++count > frames[index].second) ++index %= frames.size(); }
-//
-// private:
-//     std::vector<frame> frames;
-//     std::size_t count{};
-//     std::size_t index{};
-// };
+struct animation : object {
+    using frame = std::pair<std::shared_ptr<graph>, std::size_t>;
+    animation(const std::shared_ptr<iterator<std::shared_ptr<frame>>> & frame_iterator) {
+        while (frame_iterator->has_next())
+            frames->push_back(frame_iterator->next());
+        if (frames->empty()) throw std::logic_error("animation must be not empty.");
+    }
+    std::shared_ptr<graph> get_current_graph() const { return frames->at(index)->first; }
+    virtual void draw() const override { get_current_graph()->draw(); }
+    virtual double get_width() const override { return frames->front()->first->get_width(); }
+    virtual double get_height() const override { return frames->front()->first->get_height(); }
+    virtual void update() override { if (++count > frames->at(index)->second) { count = 0; ++index %= frames->size(); } }
+private:
+    std::shared_ptr<std::vector<std::shared_ptr<frame>>> frames{
+        std::make_shared<std::vector<std::shared_ptr<frame>>>()
+    };
+    std::size_t count{};
+    std::size_t index{};
+};
 
 struct font : object {
     font();
@@ -248,6 +261,7 @@ struct font : object {
     virtual void set_height(double height) {}
     virtual double get_theta() const override;
     virtual void set_theta(double theta) override;
+    virtual void load(std::string_view path, int size = -1);
     virtual void draw() const override;
     virtual void update() override;
 
@@ -322,7 +336,10 @@ struct tiled_map : object, position, dimension, rotatable {
     {}
 
     tiled_map(std::size_t column_number, std::size_t row_number, double column_width, double row_height)
-        : column_number{column_number}, row_number{row_number}, column_width{column_width}, row_height{row_height}
+        : column_number{column_number}
+        , row_number{row_number}
+        , column_width{column_width}
+        , row_height{row_height}
         , graph_indexes{std::make_shared<typename decltype(graph_indexes)::element_type>()}
         , graphs{std::make_shared<typename decltype(graphs)::element_type>()}
     {}
@@ -340,12 +357,10 @@ struct tiled_map : object, position, dimension, rotatable {
     virtual std::shared_ptr<graph> get_graph(std::size_t index) const { return graphs->at(index); }
     virtual void set_graph(std::size_t index, std::shared_ptr<graph> g) { graphs->at(index) = g; }
 
-    template<typename Iterator> void set_graphs(Iterator begin, Iterator end) {
+    virtual void set_graphs(std::shared_ptr<iterator<std::shared_ptr<graph>>> graph_iterator) {
         graphs->clear();
-        while (begin != end) {
-            graphs->push_back(*begin);
-            ++begin;
-        }
+        while (graph_iterator->has_next())
+            graphs->push_back(graph_iterator->next());
     }
 
     virtual void update() override {
