@@ -8,12 +8,58 @@
 #include <utility>
 #include <optional>
 #include <functional>
+#include <type_traits>
+#include <algorithm>
 
 #ifdef _MSC_VER
 #    pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
 #endif
 
 namespace DxLibPp {
+
+template<typename T> struct iterator {
+    using value_type = T;
+    virtual ~iterator() {}
+    virtual bool has_next() const = 0;
+    virtual value_type next() = 0;
+    virtual void remove() = 0;
+};
+
+template<typename ErasableContainer>
+struct concrete_iterator : iterator<typename ErasableContainer::value_type> {
+    using value_type = typename ErasableContainer::value_type;
+    concrete_iterator(const std::shared_ptr<ErasableContainer> & erasable_container)
+        : begin{std::begin(*erasable_container)}
+        , end{std::end(*erasable_container)}
+        , erasable_container{erasable_container} {}
+    virtual ~concrete_iterator() {}
+    virtual bool has_next() const override { return begin != end; }
+
+    virtual value_type next() override {
+        if (!has_next())
+            throw std::runtime_error("iterator has no next.");
+        prev = begin++;
+        return **prev;
+    }
+
+    virtual void remove() override {
+        if (!prev)
+            throw std::runtime_error("iterator has no previous.");
+        erasable_container->erase(*prev);
+    }
+
+private:
+    typename ErasableContainer::iterator begin, end;
+    std::optional<typename ErasableContainer::iterator> prev;
+    std::shared_ptr<ErasableContainer> erasable_container;
+};
+
+template<typename ErasableContainer>
+auto make_iterator(const std::shared_ptr<ErasableContainer> & container)
+    -> std::shared_ptr<iterator<typename ErasableContainer::value_type>>
+{
+    return std::make_shared<concrete_iterator<ErasableContainer>>(container);
+}
 
 template<typename T>
 struct abstract_position {
@@ -122,6 +168,7 @@ struct basic_position : abstract_position<T> {
 protected:
     value_type x{}, y{}, width{}, height{};
 };
+using position = basic_position<double>;
 
 template<typename T>
 struct basic_rotatable : abstract_rotatable<T> {
@@ -132,6 +179,7 @@ struct basic_rotatable : abstract_rotatable<T> {
 protected:
     value_type theta{};
 };
+using rotatable = basic_rotatable<double>;
 
 struct object
     : drawable
@@ -144,11 +192,11 @@ struct object
     virtual void update() override {}
 };
 
-struct image : object {
-    image(std::string_view path);
-    image(const image & img);
-    virtual ~image();
-    image & operator =(const image & img);
+struct graph : object {
+    graph(std::string_view path);
+    graph(const graph & img);
+    virtual ~graph();
+    graph & operator =(const graph & g);
     virtual void draw() const override;
     virtual double get_x() const override { return x; }
     virtual double get_y() const override { return y; }
@@ -168,7 +216,7 @@ private:
 };
 
 // struct animation : drawable, updatable {
-//     using frame = std::pair<image, int>;
+//     using frame = std::pair<graph, int>;
 //     template<typename Iterator> animation(Iterator begin, Iterator end) : frames{begin, end}
 //         { if (frames.empty()) throw std::logic_error("animation must be not empty."); }
 //     virtual draw() const override { frames[index].first.draw(x, y, width, height); }
@@ -205,7 +253,7 @@ struct font : object {
 
 private:
     std::string text;
-    double x{}, y{};
+    double x{}, y{}, theta{};
     struct impl_t;
     std::unique_ptr<impl_t> impl;
 };
@@ -267,14 +315,67 @@ struct screen {
     static int get_height();
 };
 
-struct tiled_map : object {
+struct tiled_map : object, position, dimension, rotatable {
     tiled_map()
-        : width{static_cast<double>(screen::get_width())}
-        , height{static_cast<double>(screen::get_height())}
+        : graph_indexes{std::make_shared<typename decltype(graph_indexes)::element_type>()}
+        , graphs{std::make_shared<typename decltype(graphs)::element_type>()}
     {}
 
+    tiled_map(std::size_t column_number, std::size_t row_number, double column_width, double row_height)
+        : column_number{column_number}, row_number{row_number}, column_width{column_width}, row_height{row_height}
+        , graph_indexes{std::make_shared<typename decltype(graph_indexes)::element_type>()}
+        , graphs{std::make_shared<typename decltype(graphs)::element_type>()}
+    {}
+
+    virtual std::size_t get_column_number() const { return column_number; }
+    virtual void set_column_number(std::size_t column_number) {this->column_number = column_number; }
+    virtual std::size_t get_row_number() const { return row_number; }
+    virtual void set_row_number(std::size_t row_number) { this->row_number = row_number; }
+    virtual double get_column_width() const { return column_width; }
+    virtual void set_column_width(double column_width) { this->column_width = column_width; }
+    virtual double get_row_height() const { return this->row_height; }
+    virtual void set_row_height(double row_height) { this->row_height = row_height; }
+    virtual std::size_t get_graph_index(std::size_t x, std::size_t y) const { return graph_indexes->at(get_column_number() * y + x); }
+    virtual void set_graph_index(std::size_t x, std::size_t y, std::size_t graph_index) { graph_indexes->at(get_column_number() * y + x) = graph_index; }
+    virtual std::shared_ptr<graph> get_graph(std::size_t index) const { return graphs->at(index); }
+    virtual void set_graph(std::size_t index, std::shared_ptr<graph> g) { graphs->at(index) = g; }
+
+    template<typename Iterator> void set_graphs(Iterator begin, Iterator end) {
+        graphs->clear();
+        while (begin != end) {
+            graphs->push_back(*begin);
+            ++begin;
+        }
+    }
+
+    virtual void update() override {
+        for (auto graph : *graphs)
+            graph->update();
+    }
+
+    virtual void draw() const override {
+        for (std::size_t row = 0; row < get_row_number(); ++row) {
+            for (std::size_t column = 0; column < get_column_number(); ++column) {
+                std::size_t graph_index = get_graph_index(row, column);
+                if (graph_index != empty) {
+                    auto g = std::make_shared<graph>(*get_graph(graph_index));
+                    g->set_x(get_column_width() * column);
+                    g->set_y(get_row_height() * row);
+                    g->set_width(get_column_width());
+                    g->set_height(get_row_height());
+                    g->draw();
+                }
+            }
+        }
+    }
+
+    static constexpr std::size_t empty = static_cast<std::size_t>(-1);
+
 private:
-    double x{}, y{}, width{}, height{};
+    double column_width{}, row_height{};
+    std::size_t column_number{}, row_number{};
+    std::shared_ptr<std::vector<std::size_t>> graph_indexes;
+    std::shared_ptr<std::vector<std::shared_ptr<graph>>> graphs;
 };
 
 } //namespace DxLibPp
