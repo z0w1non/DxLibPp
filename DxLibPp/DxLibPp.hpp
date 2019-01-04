@@ -347,6 +347,118 @@ private:
     std::unique_ptr<impl_t> impl;
 };
 
+struct Key {
+    friend struct System;
+    static bool CheckHit(int key_code);
+    static int GetTimer(int key_code);
+
+    static const int INPUT_BACK;	// バックスペースキー
+    static const int INPUT_TAB;	// タブキー
+    static const int INPUT_RETURN;	// エンターキー
+
+    static const int INPUT_LSHIFT;	// 左シフトキー
+    static const int INPUT_RSHIFT;	// 右シフトキー
+    static const int INPUT_LCONTROL;	// 左コントロールキー
+    static const int INPUT_RCONTROL;	// 右コントロールキー
+    static const int INPUT_ESCAPE;	// エスケープキー
+    static const int INPUT_SPACE;	// スペースキー
+    static const int INPUT_PGUP;	// ＰａｇｅＵＰキー
+    static const int INPUT_PGDN;	// ＰａｇｅＤｏｗｎキー
+    static const int INPUT_END;	// エンドキー
+    static const int INPUT_HOME;	// ホームキー
+    static const int INPUT_LEFT;	// 左キー
+    static const int INPUT_UP;	// 上キー
+    static const int INPUT_RIGHT;	// 右キー
+    static const int INPUT_DOWN;	// 下キー
+    static const int INPUT_INSERT;	// インサートキー
+    static const int INPUT_DELETE;	// デリートキー
+
+    static const int INPUT_MINUS;	// －キー
+    static const int INPUT_YEN;	// ￥キー
+    static const int INPUT_PREVTRACK;	// ＾キー
+    static const int INPUT_PERIOD;	// ．キー
+    static const int INPUT_SLASH;	// ／キー
+    static const int INPUT_LALT;	// 左ＡＬＴキー
+    static const int INPUT_RALT;	// 右ＡＬＴキー
+    static const int INPUT_SCROLL;	// ScrollLockキー
+    static const int INPUT_SEMICOLON;	// ；キー
+    static const int INPUT_COLON;	// ：キー
+    static const int INPUT_LBRACKET;	// ［キー
+    static const int INPUT_RBRACKET;	// ］キー
+    static const int INPUT_AT;	// ＠キー
+    static const int INPUT_BACKSLASH;	// ＼キー
+    static const int INPUT_COMMA;	// ，キー
+    static const int INPUT_CAPSLOCK;	// CaspLockキー
+    static const int INPUT_PAUSE;	// PauseBreakキー
+
+    static const int INPUT_NUMPAD0;	// テンキー０
+    static const int INPUT_NUMPAD1;	// テンキー１
+    static const int INPUT_NUMPAD2;	// テンキー２
+    static const int INPUT_NUMPAD3;	// テンキー３
+    static const int INPUT_NUMPAD4;	// テンキー４
+    static const int INPUT_NUMPAD5;	// テンキー５
+    static const int INPUT_NUMPAD6;	// テンキー６
+    static const int INPUT_NUMPAD7;	// テンキー７
+    static const int INPUT_NUMPAD8;	// テンキー８
+    static const int INPUT_NUMPAD9;	// テンキー９
+    static const int INPUT_MULTIPLY;	// テンキー＊キー
+    static const int INPUT_ADD;	// テンキー＋キー
+    static const int INPUT_SUBTRACT;	// テンキー－キー
+    static const int INPUT_DECIMAL;	// テンキー．キー
+    static const int INPUT_DIVIDE;	// テンキー／キー
+    static const int INPUT_NUMPADENTER;	// テンキーのエンターキー
+
+    static const int INPUT_F1;	// Ｆ１キー
+    static const int INPUT_F2;	// Ｆ２キー
+    static const int INPUT_F3;	// Ｆ３キー
+    static const int INPUT_F4;	// Ｆ４キー
+    static const int INPUT_F5;	// Ｆ５キー
+    static const int INPUT_F6;	// Ｆ６キー
+    static const int INPUT_F7;	// Ｆ７キー
+    static const int INPUT_F8;	// Ｆ８キー
+    static const int INPUT_F9;	// Ｆ９キー
+    static const int INPUT_F10;	// Ｆ１０キー
+    static const int INPUT_F11;	// Ｆ１１キー
+    static const int INPUT_F12;	// Ｆ１２キー
+
+    static const int INPUT_A;	// Ａキー
+    static const int INPUT_B;	// Ｂキー
+    static const int INPUT_C;	// Ｃキー
+    static const int INPUT_D;	// Ｄキー
+    static const int INPUT_E;	// Ｅキー
+    static const int INPUT_F;	// Ｆキー
+    static const int INPUT_G;	// Ｇキー
+    static const int INPUT_H;	// Ｈキー
+    static const int INPUT_I;	// Ｉキー
+    static const int INPUT_J;	// Ｊキー
+    static const int INPUT_K;	// Ｋキー
+    static const int INPUT_L;	// Ｌキー
+    static const int INPUT_M;	// Ｍキー
+    static const int INPUT_N;	// Ｎキー
+    static const int INPUT_O;	// Ｏキー
+    static const int INPUT_P;	// Ｐキー
+    static const int INPUT_Q;	// Ｑキー
+    static const int INPUT_R;	// Ｒキー
+    static const int INPUT_S;	// Ｓキー
+    static const int INPUT_T;	// Ｔキー
+    static const int INPUT_U;	// Ｕキー
+    static const int INPUT_V;	// Ｖキー
+    static const int INPUT_W;	// Ｗキー
+    static const int INPUT_X;	// Ｘキー
+    static const int INPUT_Y;	// Ｙキー
+    static const int INPUT_Z;	// Ｚキー
+    static const int INPUT_0;	// ０キー
+    static const int INPUT_1;	// １キー
+    static const int INPUT_2;	// ２キー
+    static const int INPUT_3;	// ３キー
+    static const int INPUT_4;	// ４キー
+    static const int INPUT_5;	// ５キー
+    static const int INPUT_6;	// ６キー
+    static const int INPUT_7;	// ７キー
+    static const int INPUT_8;	// ８キー
+    static const int INPUT_9;	// ９キー
+};
+
 struct TiledMap : Object {
     TiledMap()
         : graph_indexes{std::make_shared<typename decltype(graph_indexes)::element_type>()}

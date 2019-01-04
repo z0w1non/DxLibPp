@@ -18,6 +18,11 @@ int main() {
             f->SetText(std::to_string(next));
             f->Draw();
         }
+        {
+            auto f = std::make_shared<Font>(*fnt);
+            f->SetText(std::to_string(Key::GetTimer(Key::INPUT_RETURN)));
+            f->Draw();
+        }
     }
     return EXIT_SUCCESS;
 }

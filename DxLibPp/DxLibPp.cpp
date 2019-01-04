@@ -34,6 +34,7 @@ DEFINE_THROW_FUNCTION(PlaySoundMem)
 DEFINE_THROW_FUNCTION(CheckSoundMem)
 DEFINE_THROW_FUNCTION(StopSoundMem)
 DEFINE_THROW_FUNCTION(DeleteSoundMem)
+DEFINE_THROW_FUNCTION(GetHitKeyStateAll)
 #undef DEFINE_THROW_FUNCTION
 
 #define DEFINE_NOTHROW_FUNCTION(function_name) \
@@ -45,6 +46,22 @@ DEFINE_NOTHROW_FUNCTION(DrawRotaGraph3)
 DEFINE_NOTHROW_FUNCTION(DrawStringToHandle)
 #undef DEFINE_NOTHROW_FUNCTION
 
+static char key_state[256];
+static int key_timer[256];
+static void init_key_timer() {
+    for (std::size_t i = 0; i < std::size(key_timer); ++i)
+        key_timer[i] = 0;
+}
+static void update_key_state() {
+    GetHitKeyStateAll_s(key_state);
+    for (std::size_t i = 0; i < std::size(key_state); ++i) {
+        if (key_state[i])
+            ++key_timer[i];
+        else
+            key_timer[i] = 0;
+    }
+}
+
 }
 
 DxLibPp::SystemInitializer::SystemInitializer() {
@@ -53,6 +70,7 @@ DxLibPp::SystemInitializer::SystemInitializer() {
         ChangeWindowMode_s(TRUE);
         DxLib_Init_s();
         SetDrawScreen_s(DX_SCREEN_BACK);
+        init_key_timer();
     }
 }
 
@@ -225,6 +243,7 @@ void DxLibPp::Global::ResolveAttachment() {
 }
 
 bool DxLibPp::System::Update() {
+    update_key_state();
     return ScreenFlip() != -1 && ProcessMessage() != -1 && ClearDrawScreen() != -1;
 }
 
@@ -284,3 +303,119 @@ void DxLibPp::Sound::Load(std::string_view path) {
 bool DxLibPp::Sound::Check() const {
     return CheckSoundMem_s(*impl->handle) ? true : false;
 }
+
+bool DxLibPp::Key::CheckHit(int key_code) {
+    if (key_code < 0 || key_code >= 256)
+        throw std::runtime_error("key_code must be [0, 255].");
+    return key_state[key_code] ? true : false;
+}
+
+int DxLibPp::Key::GetTimer(int key_code) {
+    return key_timer[key_code];
+}
+
+const int DxLibPp::Key::INPUT_BACK = KEY_INPUT_BACK;	// バックスペースキー
+const int DxLibPp::Key::INPUT_TAB = KEY_INPUT_TAB;	// タブキー
+const int DxLibPp::Key::INPUT_RETURN = KEY_INPUT_RETURN;	// エンターキー
+
+const int DxLibPp::Key::INPUT_LSHIFT = KEY_INPUT_LSHIFT;	// 左シフトキー
+const int DxLibPp::Key::INPUT_RSHIFT = KEY_INPUT_RSHIFT;	// 右シフトキー
+const int DxLibPp::Key::INPUT_LCONTROL = KEY_INPUT_LCONTROL;	// 左コントロールキー
+const int DxLibPp::Key::INPUT_RCONTROL = KEY_INPUT_RCONTROL;	// 右コントロールキー
+const int DxLibPp::Key::INPUT_ESCAPE = KEY_INPUT_ESCAPE;	// エスケープキー
+const int DxLibPp::Key::INPUT_SPACE = KEY_INPUT_SPACE;	// スペースキー
+const int DxLibPp::Key::INPUT_PGUP = KEY_INPUT_PGUP;	// ＰａｇｅＵＰキー
+const int DxLibPp::Key::INPUT_PGDN = KEY_INPUT_PGDN;	// ＰａｇｅＤｏｗｎキー
+const int DxLibPp::Key::INPUT_END = KEY_INPUT_END;	// エンドキー
+const int DxLibPp::Key::INPUT_HOME = KEY_INPUT_HOME;	// ホームキー
+const int DxLibPp::Key::INPUT_LEFT = KEY_INPUT_LEFT;	// 左キー
+const int DxLibPp::Key::INPUT_UP = KEY_INPUT_UP;	// 上キー
+const int DxLibPp::Key::INPUT_RIGHT = KEY_INPUT_RIGHT;	// 右キー
+const int DxLibPp::Key::INPUT_DOWN = KEY_INPUT_DOWN;	// 下キー
+const int DxLibPp::Key::INPUT_INSERT = KEY_INPUT_INSERT;	// インサートキー
+const int DxLibPp::Key::INPUT_DELETE = KEY_INPUT_DELETE;	// デリートキー
+
+const int DxLibPp::Key::INPUT_MINUS = KEY_INPUT_MINUS;	// －キー
+const int DxLibPp::Key::INPUT_YEN = KEY_INPUT_YEN;	// ￥キー
+const int DxLibPp::Key::INPUT_PREVTRACK = KEY_INPUT_PREVTRACK;	// ＾キー
+const int DxLibPp::Key::INPUT_PERIOD = KEY_INPUT_PERIOD;	// ．キー
+const int DxLibPp::Key::INPUT_SLASH = KEY_INPUT_SLASH;	// ／キー
+const int DxLibPp::Key::INPUT_LALT = KEY_INPUT_LALT;	// 左ＡＬＴキー
+const int DxLibPp::Key::INPUT_RALT = KEY_INPUT_RALT;	// 右ＡＬＴキー
+const int DxLibPp::Key::INPUT_SCROLL = KEY_INPUT_SCROLL;	// ScrollLockキー
+const int DxLibPp::Key::INPUT_SEMICOLON = KEY_INPUT_SEMICOLON;	// ；キー
+const int DxLibPp::Key::INPUT_COLON = KEY_INPUT_COLON;	// ：キー
+const int DxLibPp::Key::INPUT_LBRACKET = KEY_INPUT_LBRACKET;	// ［キー
+const int DxLibPp::Key::INPUT_RBRACKET = KEY_INPUT_RBRACKET;	// ］キー
+const int DxLibPp::Key::INPUT_AT = KEY_INPUT_AT;	// ＠キー
+const int DxLibPp::Key::INPUT_BACKSLASH = KEY_INPUT_BACKSLASH;	// ＼キー
+const int DxLibPp::Key::INPUT_COMMA = KEY_INPUT_COMMA;	// ，キー
+const int DxLibPp::Key::INPUT_CAPSLOCK = KEY_INPUT_CAPSLOCK;	// CaspLockキー
+const int DxLibPp::Key::INPUT_PAUSE = KEY_INPUT_PAUSE;	// PauseBreakキー
+
+const int DxLibPp::Key::INPUT_NUMPAD0 = KEY_INPUT_NUMPAD0;	// テンキー０
+const int DxLibPp::Key::INPUT_NUMPAD1 = KEY_INPUT_NUMPAD1;	// テンキー１
+const int DxLibPp::Key::INPUT_NUMPAD2 = KEY_INPUT_NUMPAD2;	// テンキー２
+const int DxLibPp::Key::INPUT_NUMPAD3 = KEY_INPUT_NUMPAD3;	// テンキー３
+const int DxLibPp::Key::INPUT_NUMPAD4 = KEY_INPUT_NUMPAD4;	// テンキー４
+const int DxLibPp::Key::INPUT_NUMPAD5 = KEY_INPUT_NUMPAD5;	// テンキー５
+const int DxLibPp::Key::INPUT_NUMPAD6 = KEY_INPUT_NUMPAD6;	// テンキー６
+const int DxLibPp::Key::INPUT_NUMPAD7 = KEY_INPUT_NUMPAD7;	// テンキー７
+const int DxLibPp::Key::INPUT_NUMPAD8 = KEY_INPUT_NUMPAD8;	// テンキー８
+const int DxLibPp::Key::INPUT_NUMPAD9 = KEY_INPUT_NUMPAD9;	// テンキー９
+const int DxLibPp::Key::INPUT_MULTIPLY = KEY_INPUT_MULTIPLY;	// テンキー＊キー
+const int DxLibPp::Key::INPUT_ADD = KEY_INPUT_ADD;	// テンキー＋キー
+const int DxLibPp::Key::INPUT_SUBTRACT = KEY_INPUT_SUBTRACT;	// テンキー－キー
+const int DxLibPp::Key::INPUT_DECIMAL = KEY_INPUT_DECIMAL;	// テンキー．キー
+const int DxLibPp::Key::INPUT_DIVIDE = KEY_INPUT_DIVIDE;	// テンキー／キー
+const int DxLibPp::Key::INPUT_NUMPADENTER = KEY_INPUT_NUMPADENTER;	// テンキーのエンターキー
+
+const int DxLibPp::Key::INPUT_F1 = KEY_INPUT_F1;	// Ｆ１キー
+const int DxLibPp::Key::INPUT_F2 = KEY_INPUT_F2;	// Ｆ２キー
+const int DxLibPp::Key::INPUT_F3 = KEY_INPUT_F3;	// Ｆ３キー
+const int DxLibPp::Key::INPUT_F4 = KEY_INPUT_F4;	// Ｆ４キー
+const int DxLibPp::Key::INPUT_F5 = KEY_INPUT_F5;	// Ｆ５キー
+const int DxLibPp::Key::INPUT_F6 = KEY_INPUT_F6;	// Ｆ６キー
+const int DxLibPp::Key::INPUT_F7 = KEY_INPUT_F7;	// Ｆ７キー
+const int DxLibPp::Key::INPUT_F8 = KEY_INPUT_F8;	// Ｆ８キー
+const int DxLibPp::Key::INPUT_F9 = KEY_INPUT_F9;	// Ｆ９キー
+const int DxLibPp::Key::INPUT_F10 = KEY_INPUT_F10;	// Ｆ１０キー
+const int DxLibPp::Key::INPUT_F11 = KEY_INPUT_F11;	// Ｆ１１キー
+const int DxLibPp::Key::INPUT_F12 = KEY_INPUT_F12;	// Ｆ１２キー
+
+const int DxLibPp::Key::INPUT_A = KEY_INPUT_A;	// Ａキー
+const int DxLibPp::Key::INPUT_B = KEY_INPUT_B;	// Ｂキー
+const int DxLibPp::Key::INPUT_C = KEY_INPUT_C;	// Ｃキー
+const int DxLibPp::Key::INPUT_D = KEY_INPUT_D;	// Ｄキー
+const int DxLibPp::Key::INPUT_E = KEY_INPUT_E;	// Ｅキー
+const int DxLibPp::Key::INPUT_F = KEY_INPUT_F;	// Ｆキー
+const int DxLibPp::Key::INPUT_G = KEY_INPUT_G;	// Ｇキー
+const int DxLibPp::Key::INPUT_H = KEY_INPUT_H;	// Ｈキー
+const int DxLibPp::Key::INPUT_I = KEY_INPUT_I;	// Ｉキー
+const int DxLibPp::Key::INPUT_J = KEY_INPUT_J;	// Ｊキー
+const int DxLibPp::Key::INPUT_K = KEY_INPUT_K;	// Ｋキー
+const int DxLibPp::Key::INPUT_L = KEY_INPUT_L;	// Ｌキー
+const int DxLibPp::Key::INPUT_M = KEY_INPUT_M;	// Ｍキー
+const int DxLibPp::Key::INPUT_N = KEY_INPUT_N;	// Ｎキー
+const int DxLibPp::Key::INPUT_O = KEY_INPUT_O;	// Ｏキー
+const int DxLibPp::Key::INPUT_P = KEY_INPUT_P;	// Ｐキー
+const int DxLibPp::Key::INPUT_Q = KEY_INPUT_Q;	// Ｑキー
+const int DxLibPp::Key::INPUT_R = KEY_INPUT_R;	// Ｒキー
+const int DxLibPp::Key::INPUT_S = KEY_INPUT_S;	// Ｓキー
+const int DxLibPp::Key::INPUT_T = KEY_INPUT_T;	// Ｔキー
+const int DxLibPp::Key::INPUT_U = KEY_INPUT_U;	// Ｕキー
+const int DxLibPp::Key::INPUT_V = KEY_INPUT_V;	// Ｖキー
+const int DxLibPp::Key::INPUT_W = KEY_INPUT_W;	// Ｗキー
+const int DxLibPp::Key::INPUT_X = KEY_INPUT_X;	// Ｘキー
+const int DxLibPp::Key::INPUT_Y = KEY_INPUT_Y;	// Ｙキー
+const int DxLibPp::Key::INPUT_Z = KEY_INPUT_Z;	// Ｚキー
+const int DxLibPp::Key::INPUT_0 = KEY_INPUT_0;	// ０キー
+const int DxLibPp::Key::INPUT_1 = KEY_INPUT_1;	// １キー
+const int DxLibPp::Key::INPUT_2 = KEY_INPUT_2;	// ２キー
+const int DxLibPp::Key::INPUT_3 = KEY_INPUT_3;	// ３キー
+const int DxLibPp::Key::INPUT_4 = KEY_INPUT_4;	// ４キー
+const int DxLibPp::Key::INPUT_5 = KEY_INPUT_5;	// ５キー
+const int DxLibPp::Key::INPUT_6 = KEY_INPUT_6;	// ６キー
+const int DxLibPp::Key::INPUT_7 = KEY_INPUT_7;	// ７キー
+const int DxLibPp::Key::INPUT_8 = KEY_INPUT_8;	// ８キー
+const int DxLibPp::Key::INPUT_9 = KEY_INPUT_9;	// ９キー
