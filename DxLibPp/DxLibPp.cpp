@@ -147,7 +147,7 @@ void DxLibPp::Graph::Load(std::string_view path) {
     height = d.GetHeight();
 }
 
-std::shared_ptr<DxLibPp::Iterator<std::shared_ptr<DxLibPp::Graph>>> DxLibPp::Graph::LoadDivGraph(
+DxLibPp::Iterator<DxLibPp::Graph &> DxLibPp::Graph::LoadDivGraph(
     std::string_view path,
     std::size_t number,
     std::size_t column_number, std::size_t row_number,
@@ -155,13 +155,13 @@ std::shared_ptr<DxLibPp::Iterator<std::shared_ptr<DxLibPp::Graph>>> DxLibPp::Gra
 ) {
     std::vector<int> handles(number);
     LoadDivGraph_s(std::string(path).c_str(), number, column_number, row_number, column_width, row_height, handles.data());
-    auto graphs = std::make_shared<std::vector<std::shared_ptr<Graph>>>();
+    auto graphs = std::make_shared<std::vector<Graph>>();
     for (std::size_t i = 0; i < handles.size(); ++i) {
-        auto g = std::make_shared<Graph>();
-        g->impl->handle = std::shared_ptr<int>{new int{handles.at(i)}, impl_t::delete_handle};
+        Graph g;
+        g.impl->handle = std::shared_ptr<int>{new int{handles.at(i)}, impl_t::delete_handle};
         graphs->push_back(g);
     }
-    return CreateIterator(graphs);
+    return GetIterator(graphs);
 }
 
 struct DxLibPp::Font::impl_t {

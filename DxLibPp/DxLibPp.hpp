@@ -17,25 +17,67 @@
 
 namespace DxLibPp {
 
-template<typename T> struct Iterator {
-    using value_type = T;
+template<typename Reference> struct Iterator {
+    using referecne = Reference;
+
+    struct Implement {
+        virtual ~Implement() {}
+        virtual bool HasNext() const = 0;
+        virtual referecne Next() = 0;
+        virtual void Remove() = 0;
+    };
+
+    Iterator(const std::shared_ptr<Implement> & impl) : impl{impl} {}
+    Iterator(const Iterator & iter) = default;
+    Iterator & operator =(const Iterator & iter) = default;
     virtual ~Iterator() {}
-    virtual bool HasNext() const = 0;
-    virtual value_type Next() = 0;
-    virtual void Remove() = 0;
+    virtual bool HasNext() const { return impl->HasNext(); }
+    virtual referecne Next() { return impl->Next(); }
+    virtual void Remove() { return impl->Remove(); }
+private:
+    std::shared_ptr<Implement> impl;
 };
 
 template<typename ErasableContainer>
-struct ConcreteIterator : Iterator<typename ErasableContainer::value_type> {
-    using value_type = typename ErasableContainer::value_type;
-    ConcreteIterator(const std::shared_ptr<ErasableContainer> & erasable_container)
-        : begin{std::begin(*erasable_container)}
-        , end{std::end(*erasable_container)}
+struct ReferenceIteratorImplement : Iterator<typename ErasableContainer::reference>::Implement {
+    using reference = typename ErasableContainer::reference;
+    ReferenceIteratorImplement(ErasableContainer & erasable_container)
+        : begin{std::begin(erasable_container)}
+        , end{std::end(erasable_container)}
         , erasable_container{erasable_container} {}
-    virtual ~ConcreteIterator() {}
+    virtual ~ReferenceIteratorImplement() {}
     virtual bool HasNext() const override { return begin != end; }
 
-    virtual value_type Next() override {
+    virtual reference Next() override {
+        if (!HasNext())
+            throw std::runtime_error("Iterator has no next.");
+        prev = begin++;
+        return **prev;
+    }
+
+    virtual void Remove() override {
+        if (!prev)
+            throw std::runtime_error("Iterator has no previous.");
+        erasable_container.erase(*prev);
+    }
+
+private:
+    typename ErasableContainer::iterator begin, end;
+    std::optional<typename ErasableContainer::iterator> prev;
+    ErasableContainer & erasable_container;
+};
+
+template<typename ErasableContainer>
+struct SharedIteratorImplement : Iterator<typename ErasableContainer::reference>::Implement {
+    using reference = typename ErasableContainer::reference;
+    SharedIteratorImplement(const std::shared_ptr<ErasableContainer> & erasable_container)
+        : begin{ std::begin(*erasable_container) }
+        , end{ std::end(*erasable_container) }
+        , erasable_container{ erasable_container } {}
+    virtual ~SharedIteratorImplement() {}
+    virtual bool HasNext() const override { return begin != end; }
+
+    virtual reference Next() override {
         if (!HasNext())
             throw std::runtime_error("Iterator has no next.");
         prev = begin++;
@@ -55,10 +97,17 @@ private:
 };
 
 template<typename ErasableContainer>
-auto CreateIterator(const std::shared_ptr<ErasableContainer> & container)
-    -> std::shared_ptr<Iterator<typename ErasableContainer::value_type>>
-{
-    return std::make_shared<ConcreteIterator<ErasableContainer>>(container);
+auto GetIterator(ErasableContainer & container) -> Iterator<typename ErasableContainer::reference> {
+    return Iterator<typename ErasableContainer::reference>(
+        std::make_shared<ReferenceIteratorImplement<ErasableContainer>>(container)
+    );
+}
+
+template<typename ErasableContainer>
+auto GetIterator(const std::shared_ptr<ErasableContainer> & container) {
+    return Iterator<typename ErasableContainer::reference>(
+        std::make_shared<SharedIteratorImplement<ErasableContainer>>(container)
+    );
 }
 
 template<typename T>
@@ -210,7 +259,7 @@ struct Graph : Object {
     virtual double GetTheta() const override { return theta; }
     virtual void SetTheta(double theta) override { this->theta = theta; }
     virtual void Load(std::string_view path);
-    static std::shared_ptr<Iterator<std::shared_ptr<Graph>>> LoadDivGraph(
+    static Iterator<Graph &> LoadDivGraph(
         std::string_view path,
         std::size_t number,
         std::size_t column_number, std::size_t row_number,
@@ -460,18 +509,13 @@ struct Key {
 };
 
 struct TiledMap : Object {
-    TiledMap()
-        : graph_indexes{std::make_shared<typename decltype(graph_indexes)::element_type>()}
-        , graphs{std::make_shared<typename decltype(graphs)::element_type>()}
-    {}
+    TiledMap() {}
 
     TiledMap(std::size_t column_number, std::size_t row_number, double column_width, double row_height)
         : column_number{column_number}
         , row_number{row_number}
         , column_width{column_width}
         , row_height{row_height}
-        , graph_indexes{std::make_shared<typename decltype(graph_indexes)::element_type>()}
-        , graphs{std::make_shared<typename decltype(graphs)::element_type>()}
     {}
 
     virtual std::size_t GetColumnNumber() const { return column_number; }
@@ -482,20 +526,20 @@ struct TiledMap : Object {
     virtual void SetColumnWidth(double column_width) { this->column_width = column_width; }
     virtual double GetRowHeight() const { return this->row_height; }
     virtual void SetRowHeight(double row_height) { this->row_height = row_height; }
-    virtual std::size_t GetGraphIndex(std::size_t x, std::size_t y) const { return graph_indexes->at(GetColumnNumber() * y + x); }
-    virtual void SetGraphIndex(std::size_t x, std::size_t y, std::size_t graph_index) { graph_indexes->at(GetColumnNumber() * y + x) = graph_index; }
-    virtual std::shared_ptr<Graph> GetGraph(std::size_t index) const { return graphs->at(index); }
-    virtual void SetGraph(std::size_t index, std::shared_ptr<Graph> g) { graphs->at(index) = g; }
+    virtual std::size_t GetGraphIndex(std::size_t x, std::size_t y) const { return graph_indexes.at(GetColumnNumber() * y + x); }
+    virtual void SetGraphIndex(std::size_t x, std::size_t y, std::size_t graph_index) { graph_indexes.at(GetColumnNumber() * y + x) = graph_index; }
+    virtual Graph GetGraph(std::size_t index) const { return graphs.at(index); }
+    virtual void SetGraph(std::size_t index, const Graph & g) { graphs.at(index) = g; }
 
-    virtual void SetGraphs(std::shared_ptr<Iterator<std::shared_ptr<Graph>>> graph_iterator) {
-        graphs->clear();
-        while (graph_iterator->HasNext())
-            graphs->push_back(graph_iterator->Next());
-    }
+//    virtual void SetGraphs(Iterator<Graph> graph_iterator) {
+//        graphs.clear();
+//        while (graph_iterator->HasNext())
+//            graphs->push_back(graph_iterator->Next());
+//    }
 
     virtual void Update() override {
-        for (auto Graph : *graphs)
-            Graph->Update();
+        for (auto & Graph : graphs)
+            Graph.Update();
     }
 
     virtual void Draw() const override {
@@ -503,12 +547,12 @@ struct TiledMap : Object {
             for (std::size_t column = 0; column < GetColumnNumber(); ++column) {
                 std::size_t graph_index = GetGraphIndex(row, column);
                 if (graph_index != EMPTY) {
-                    auto g = std::make_shared<Graph>(*GetGraph(graph_index));
-                    g->SetX(GetColumnWidth() * column);
-                    g->SetY(GetRowHeight() * row);
-                    g->SetWidth(GetColumnWidth());
-                    g->SetHeight(GetRowHeight());
-                    g->Draw();
+                    auto g = Graph(GetGraph(graph_index));
+                    g.SetX(GetColumnWidth() * column);
+                    g.SetY(GetRowHeight() * row);
+                    g.SetWidth(GetColumnWidth());
+                    g.SetHeight(GetRowHeight());
+                    g.Draw();
                 }
             }
         }
@@ -519,8 +563,8 @@ struct TiledMap : Object {
 private:
     double column_width{}, row_height{};
     std::size_t column_number{}, row_number{};
-    std::shared_ptr<std::vector<std::size_t>> graph_indexes;
-    std::shared_ptr<std::vector<std::shared_ptr<Graph>>> graphs;
+    std::vector<std::size_t> graph_indexes;
+    std::vector<Graph> graphs;
 };
 
 } //namespace DxLibPp
